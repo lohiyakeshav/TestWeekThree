@@ -1,0 +1,208 @@
+🧾 Product Requirements Document (PRD)
+
+Project: Mini Order Management Service
+Tech Stack: FastAPI, SQLAlchemy, Pydantic, PyJWT, pytest, HTTPX
+Author: Keshav Lohiya
+Version: 1.0
+Date: 2025-10-07
+
+1. 🎯 Overview
+
+We are building a Mini Order Management Service that handles:
+
+User authentication and role-based access control
+
+Order creation with transactional safety (rollback on payment failure)
+
+Async notifications upon successful order placement
+
+Comprehensive test coverage (unit, integration, async behavior)
+
+The service should be maintainable, scalable, and production-ready, following SOLID, KISS, and DRY principles.
+
+2. 🧩 Goals & Non-Goals
+✅ Goals
+
+Implement secure JWT-based login
+
+Enable role-based access (Admin/User)
+
+Ensure transactional integrity using SQLAlchemy sessions
+
+Simulate payment gateway and handle rollback
+
+Send async notification on order success
+
+Maintain clean architecture with proper directories
+
+Write unit tests (for services, models) and integration tests (API endpoints)
+
+❌ Non-Goals
+
+Building a real payment gateway
+
+Frontend UI (this is backend-only)
+
+Multi-tenant or multi-database support
+
+3. ⚙️ Functional Requirements
+3.1 Authentication & Authorization
+Feature	Description	Tools
+JWT Login	Users can login using username/password and get JWT token	PyJWT / fastapi-jwt-auth
+Role-Based Access	Users have roles: admin and user	Role validation middleware/decorator
+Token Validation	Every API request must validate JWT	FastAPI dependencies
+3.2 Order Flow (Transactional Logic)
+Step	Description
+1️⃣	User calls /orders/create with order payload
+2️⃣	Server starts SQLAlchemy transaction
+3️⃣	Simulate payment API (fake_payment_gateway())
+4️⃣	If payment fails → rollback transaction
+5️⃣	If success → commit order and trigger async notification
+3.3 Async Notification
+Feature	Description
+Async email notification	On successful payment, send confirmation email (simulated via background task or Celery later)
+Test coverage	One test should validate async execution and task completion
+3.4 Logging
+
+Use a decorator-based logger for all major actions (auth, order creation, payment result)
+
+Use Python’s built-in logging library with rotation support
+
+4. 🧱 System Design
+4.1 Architecture Overview
++----------------------+
+| FastAPI App          |
+|   /auth, /orders     |
++----------+-----------+
+           |
+           v
++----------------------+
+| Service Layer        |  <- Business Logic (SOLID principles)
+| AuthService          |
+| OrderService         |
++----------+-----------+
+           |
+           v
++----------------------+
+| Repository Layer     |  <- SQLAlchemy ORM Repos
+| UserRepository       |
+| OrderRepository      |
++----------+-----------+
+           |
+           v
++----------------------+
+| Database (SQLLite)  |
++----------------------+
+
+4.2 Directory Structure
+app/
+├── api/
+│   ├── auth_routes.py
+│   └── order_routes.py
+├── core/
+│   ├── config.py
+│   ├── logger.py
+│   └── security.py
+├── db/
+│   ├── base.py
+│   ├── models.py
+│   └── session.py
+├── services/
+│   ├── auth_service.py
+│   ├── order_service.py
+│   └── payment_service.py
+├── utils/
+│   └── notifier.py
+├── tests/
+│   ├── unit/
+│   │   ├── test_auth_service.py
+│   │   ├── test_order_service.py
+│   │   └── test_payment_service.py
+│   └── integration/
+│       ├── test_auth_flow.py
+│       ├── test_order_flow.py
+│       └── test_async_notification.py
+└── main.py
+
+5. 🧠 Technical Requirements
+Area	Requirement
+Language	Python 3.11+
+Framework	FastAPI
+ORM	SQLAlchemy 2.0
+Validation	Pydantic
+Testing	pytest + HTTPX
+JWT	fastapi-jwt-auth
+Async Notification	BackgroundTask / asyncio
+Logging	Decorator-based logging middleware
+6. 🔄 API Endpoints
+6.1 Auth Routes
+Method	Endpoint	Role	Description
+POST	/auth/register	Admin	Create new user
+POST	/auth/login	Public	Login and get JWT token
+GET	/auth/me	User/Admin	Get current user info
+6.2 Order Routes
+Method	Endpoint	Role	Description
+POST	/orders/create	User	Create new order
+GET	/orders/{id}	User/Admin	Get order details
+GET	/orders/	Admin	List all orders
+7. 💥 Transaction Flow Example (Order Creation)
+@router.post("/orders/create")
+def create_order(order: OrderSchema, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    try:
+        with db.begin():
+            payment_status = fake_payment_gateway()
+            if not payment_status:
+                raise HTTPException(status_code=400, detail="Payment failed")
+            order_obj = OrderService.create_order(db, order, user)
+            trigger_async_notification(order_obj)
+        return {"status": "success", "order_id": order_obj.id}
+    except:
+        db.rollback()
+        raise
+
+8. 🧪 Testing Plan
+8.1 Unit Tests
+
+test_auth_service.py: verify password hashing, JWT creation
+
+test_order_service.py: validate order logic and rollback
+
+test_payment_service.py: simulate payment success/failure
+
+8.2 Integration Tests
+
+test_auth_flow.py: full register → login → protected route
+
+test_order_flow.py: create order → payment fail → rollback verified
+
+test_async_notification.py: ensure async notification is triggered and completes successfully
+
+8.3 Example Async Test Snippet
+@pytest.mark.asyncio
+async def test_async_notification(monkeypatch):
+    called = False
+    async def mock_notify(*args, **kwargs):
+        nonlocal called
+        called = True
+    monkeypatch.setattr("app.utils.notifier.send_notification", mock_notify)
+    await OrderService.trigger_notification_async(order_id=1)
+    assert called is True
+
+9. 🧱 Non-Functional Requirements
+Type	Requirement
+Scalability	Modular services, decoupled layers
+Maintainability	SOLID + DRY + KISS adherence
+Security	JWT, hashed passwords, role enforcement
+Reliability	Transaction rollback + unit/integration coverage
+Performance	Async operations for I/O heavy tasks
+10. 🚀 Delivery Checklist
+
+✅ FastAPI app setup
+✅ SQLAlchemy models and migrations
+✅ JWT-based auth
+✅ Role-based middleware
+✅ Order + Payment logic (transaction safe)
+✅ Async notification
+✅ Decorator-based logging
+✅ Unit + Integration tests
+✅ CI-ready test scripts

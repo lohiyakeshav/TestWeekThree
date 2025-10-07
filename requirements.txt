@@ -1,0 +1,13 @@
+fastapi
+sqlalchemy
+pydantic
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart
+python-dotenv
+uvicorn
+pytest
+pytest-asyncio
+httpx
+prometheus-client
+slowapi
