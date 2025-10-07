@@ -4,26 +4,23 @@ from app.services.email_service import EmailService
 from app.schemas.order import OrderCreate
 from app.core.logger import log_action
 from fastapi import HTTPException, status
+from fastapi import BackgroundTasks
 
 class OrderService:
     def __init__(self, db: Session):
         self.order_repo = OrderRepository(db)
     
     @log_action("create_order")
-    def create_order(self, order: OrderCreate, user_id: int, user_email: str):
+    def create_order(self, order: OrderCreate, user_id: int, user_email: str, background_tasks: BackgroundTasks):
         try:
             # Create order in database
             db_order = self.order_repo.create_order(order, user_id)
             
-            # Send email notification (handle errors gracefully)
-            try:
-                if order.success:
-                    EmailService.send_success_email(user_email)
-                else:
-                    EmailService.send_failure_email(user_email)
-            except Exception as email_error:
-                # Log email error but don't fail the order creation
-                print(f"Email sending failed: {email_error}")
+            # Schedule email notification in background; errors won't block request
+            if order.success:
+                background_tasks.add_task(EmailService.send_success_email, user_email)
+            else:
+                background_tasks.add_task(EmailService.send_failure_email, user_email)
             
             return db_order
         except Exception as e:

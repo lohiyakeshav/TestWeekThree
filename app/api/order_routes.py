@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import BackgroundTasks
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
@@ -20,9 +21,9 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
 
 @router.post("/create", response_model=OrderResponse)
 @log_action("create_order")
-def create_order(order: OrderCreate, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+def create_order(order: OrderCreate, background_tasks: BackgroundTasks, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     order_service = OrderService(db)
-    return order_service.create_order(order, current_user.id, current_user.email)
+    return order_service.create_order(order, current_user.id, current_user.email, background_tasks)
 
 @router.get("/", response_model=OrderListResponse)
 @log_action("get_orders")
