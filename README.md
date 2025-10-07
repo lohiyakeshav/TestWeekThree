@@ -1,4 +1,4 @@
-# Mini Order Management Service
+# Mini Order Management Service - Keshav Lohiya
 
 A production-ready FastAPI-based order management system with JWT authentication, role-based access control, transactional order processing, and email notifications.
 
@@ -303,3 +303,11 @@ After running `python init_db.py`:
 ## 📄 License
 
 This project is part of a technical demonstration and follows best practices for production-ready FastAPI applications.
+
+
+
+## 👨‍💻 Created By
+
+**Keshav Lohiya** - [Portfolio](https://keshavlohiya.vercel.app/)
+
+Crafted with ❤️ and modern web technologies.
