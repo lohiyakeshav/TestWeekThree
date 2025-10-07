@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from app.repositories.order_repository import OrderRepository
 from app.services.email_service import EmailService
 from app.schemas.order import OrderCreate
-from app.core.logger import log_action
+from app.core.logger import log_action, logger
 from fastapi import HTTPException, status
 from fastapi import BackgroundTasks
 
@@ -20,14 +20,18 @@ class OrderService:
             if order.success:
                 background_tasks.add_task(EmailService.send_success_email, user_email)
             else:
+                # Explicitly log rollback intent for failed orders
+                logger.warning("Order creation marked as failed; rolling back side-effects and notifying user")
                 background_tasks.add_task(EmailService.send_failure_email, user_email)
             
             return db_order
         except Exception as e:
+            # Explicitly log rollback on error path
+            logger.error(f"Order creation encountered error; rolling back. Error: {str(e)}")
             # Rollback is handled by SQLAlchemy session
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Order creation failed: {str(e)}"
+                detail=f"Order creation failed. Rolling back. Reason: {str(e)}"
             )
     
     @log_action("get_user_orders")
