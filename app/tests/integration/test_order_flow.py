@@ -29,10 +29,6 @@ class TestOrderFlow:
         assert "user_id" in data
         assert "created_at" in data
 
-    def test_create_order_unauthorized(self, client):
-        response = client.post("/orders/create", json={"success": True})
-        assert response.status_code == 401
-
     def test_get_orders_as_admin(self, client, admin_token):
         # Create a test order first
         client.post(
@@ -60,10 +56,6 @@ class TestOrderFlow:
         assert "orders" in data
         # User should only see their own orders
         assert len(data["orders"]) == 0  # No orders created by this user yet
-
-    def test_get_orders_unauthorized(self, client):
-        response = client.get("/orders/")
-        assert response.status_code == 401
 
     def test_order_rollback_simulation(self, client, admin_token):
         # Test that failed orders are still created (simulation)

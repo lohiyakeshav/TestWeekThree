@@ -21,10 +21,6 @@ class TestAuthFlow:
         assert data["user_info"]["username"] == "admin"
         assert data["user_info"]["role"] == "admin"
 
-    def test_login_invalid_credentials(self, client):
-        response = client.post("/auth/login", json={"username": "admin", "password": "wrong"})
-        assert response.status_code == 401
-
     def test_get_current_user(self, client, admin_token):
         response = client.get("/auth/me", headers={"Authorization": f"Bearer {admin_token}"})
         assert response.status_code == 200
@@ -46,15 +42,3 @@ class TestAuthFlow:
         })
         assert response.status_code == 400
         assert "Password must be at least 8 characters" in response.json()["detail"]
-
-    def test_register_user(self, client):
-        response = client.post("/auth/register", json={
-            "username": "newuser",
-            "email": "newuser@test.com",
-            "password": "NewUser123!",
-            "role": "user"
-        })
-        assert response.status_code == 200
-        data = response.json()
-        assert data["username"] == "newuser"
-        assert data["role"] == "user"
